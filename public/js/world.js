@@ -68,7 +68,9 @@ export class WorldGame {
     this.runCd = new Map();
     this.netTimer = 0;
     this.vy = 0; this.blocking = false;
-    this.comboN = 0; this.comboT = 0; this.kickCd = 0;
+    this.comboN = 0; this.comboT = 0; this.kickCd = 0; this.kickN = 0;
+    this.tag = { it: null, timeLeft: 180, round: 1, tags: {} };
+    this.tagCd = 0;
   }
 
   start() {
@@ -77,13 +79,13 @@ export class WorldGame {
     this.renderer.setSize(innerWidth, innerHeight);
     this.renderer.shadowMap.enabled = true;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.3;
+    this.renderer.toneMappingExposure = 1.5;
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xffc98a); // 밝은 석양
-    this.scene.fog = new THREE.Fog(0xffc98a, 70, 340);
+    this.scene.background = new THREE.Color(0xffd9a0); // 밝은 석양
+    this.scene.fog = new THREE.Fog(0xffd9a0, 70, 340);
     this.camera = new THREE.PerspectiveCamera(68, innerWidth / innerHeight, 0.1, 600);
-    this.scene.add(new THREE.HemisphereLight(0xffe8c3, 0x556655, 1.5));
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+    this.scene.add(new THREE.HemisphereLight(0xfff0d0, 0x667766, 1.7));
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.55));
     const sun = new THREE.DirectionalLight(0xffd9a0, 1.4);
     sun.position.set(-80, 120, 40); sun.castShadow = true;
     sun.shadow.camera.left = -130; sun.shadow.camera.right = 130;
@@ -153,6 +155,28 @@ export class WorldGame {
     }
     for (let i = 0; i < 12; i++) this.addPalm((Math.random() - 0.5) * 200, (Math.random() - 0.5) * 200);
     for (let i = 0; i < 10; i++) this.addBox((Math.random() - 0.5) * 180, 0.6, (Math.random() - 0.5) * 180, 2, 1.2, 2, 0xd35400); // 박스
+    // 현금 픽업 ($) 6개
+    this.cashDrops = [];
+    for (let i = 0; i < 6; i++) {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.7, 0.7), new THREE.MeshBasicMaterial({ color: 0x2eff6a }));
+      m.position.set((Math.random() - 0.5) * 180, 0.6, (Math.random() - 0.5) * 180);
+      this.scene.add(m);
+      this.cashDrops.push({ mesh: m, active: true, t: 0 });
+    }
+  }
+  updateCash(dt) {
+    for (const cd of this.cashDrops) {
+      if (!cd.active) {
+        cd.t -= dt;
+        if (cd.t <= 0) { cd.active = true; cd.mesh.visible = true; }
+        continue;
+      }
+      cd.mesh.rotation.y += dt * 2;
+      if (this.alive && Math.hypot(cd.mesh.position.x - this.pos.x, cd.mesh.position.z - this.pos.z) < 2) {
+        cd.active = false; cd.mesh.visible = false; cd.t = 30;
+        this.cash += 25; Sfx.cash(); this.feed('💵 현금 +$25'); this.updateHUD();
+      }
+    }
   }
   addTree(x, z) {
     const t = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.55, 4), new THREE.MeshLambertMaterial({ color: 0x5a3d1e }));
@@ -262,7 +286,7 @@ export class WorldGame {
       mats: [uniM],
       targetPos: new THREE.Vector3(), lastPos: new THREE.Vector3(),
       yaw: 0, headPitch: 0, targetPitch: 0, hp: 100, alive: true,
-      blocking: false, airborne: false,
+      blocking: false, airborne: false, kickT: 0,
       phase: Math.random() * 6, punchT: 0, deadT: 0, speed: 0, airborne: false,
     };
   }
@@ -272,13 +296,19 @@ export class WorldGame {
     const tex = new THREE.CanvasTexture(canvas);
     const spr = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthTest: true, transparent: true }));
     spr.scale.set(1.7, 0.42, 1);
-    const ctx = canvas.getContext('2d');
-    ctx.font = `bold ${nickname.length > 8 ? 24 : 30}px "Malgun Gothic", sans-serif`;
-    ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
-    ctx.strokeText(nickname, 128, 32); ctx.fillStyle = color; ctx.fillText(nickname, 128, 32);
-    tex.needsUpdate = true;
+    spr.userData = { canvas, tex, name: nickname };
+    this.drawPlate(spr, nickname, color);
     this.scene.add(spr);
     return spr;
+  }
+  drawPlate(spr, text, color) {
+    const { canvas, tex } = spr.userData;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, 256, 64);
+    ctx.font = `bold ${text.length > 8 ? 24 : 30}px "Malgun Gothic", sans-serif`;
+    ctx.textAlign = 'center'; ctx.lineWidth = 5; ctx.strokeStyle = 'rgba(0,0,0,0.85)';
+    ctx.strokeText(text, 128, 32); ctx.fillStyle = color; ctx.fillText(text, 128, 32);
+    tex.needsUpdate = true;
   }
 
   animateSoldier(r, dt, time, punching = false) {
@@ -318,6 +348,11 @@ export class WorldGame {
       if (r.punchT > 0) r.punchT -= dt;
       r.armR.sh.rotation.x = 1.5; r.armR.el.rotation.x = -0.1;
       r.armL.sh.rotation.x = 0.6 + breathe; r.armL.el.rotation.x = -0.9;
+    } else if (r.kickT > 0) { // 강킥: 오른다리 전방 차기
+      r.kickT -= dt;
+      r.legR.hip.rotation.x = 1.3; r.legR.knee.rotation.x = -0.25;
+      r.legL.hip.rotation.x = -0.15; r.legL.knee.rotation.x = -0.1;
+      r.armL.sh.rotation.x = 0.5; r.armR.sh.rotation.x = 0.5;
     } else {
       r.armL.sh.rotation.x = 0.25 + sw * 0.4 + breathe;
       r.armR.sh.rotation.x = 0.25 - sw * 0.4 + breathe;
@@ -333,7 +368,7 @@ export class WorldGame {
   spawnMe() {
     const a = Math.random() * Math.PI * 2, r = 20 + Math.random() * 40;
     this.pos.set(Math.cos(a) * r, 1.6, Math.sin(a) * r);
-    this.hp = 100; this.alive = true;
+    this.hp = 100; this.alive = true; this.blocking = false; this.vy = 0;
     this.me.mesh.visible = true; this.me.mesh.rotation.x = 0;
     this.me.deadT = 0;
   }
@@ -465,18 +500,10 @@ export class WorldGame {
         }
         this.updateHUD();
       } else {
-        const r = this._ref;
-        if (r.isBot) {
-          r.hp -= finalDmg;
-          if (third) this.knockback(r.mesh.position, this.pos, 1.6);
-          if (r.hp <= 0 && r.alive) {
-            r.alive = false; r.deadT = 1.2;
-            this.cash += 100; this.kills++; Sfx.kill();
-            this.feed(`👊 ${this.nick} [${this.wi === 0 ? '주먹' : '칼'}] → ${best}`);
-            setTimeout(() => { if (this.disposed) return; r.hp = 100; r.alive = true; r.mesh.visible = true; r.mesh.rotation.x = 0; }, 2000);
-          }
-        } else {
-          this.socket.emit('player:hit', { target: best, damage: finalDmg, weapon: this.wi === 0 ? '주먹👊' : '칼🔪' });
+        // 술래잡기: 술래만 태그 (쿨 1초)
+        if (this.amIt && now2 - this.tagCd > 1000) {
+          this.tagCd = now2;
+          this.socket.emit('player:tag', { target: best });
         }
       }
     }
@@ -488,14 +515,14 @@ export class WorldGame {
     if (!this.collide(nx, targetPos.z, 0.4)) targetPos.x = nx;
     if (!this.collide(targetPos.x, nz, 0.4)) targetPos.z = nz;
   }
-  // 강킥 (F): 긴 리치 + 넉백
+  // 강킥 (G): 긴 리치 + 넉백
   kickAttack() {
     if (!this.alive || this.driving !== null || this.blocking) return;
     const now = performance.now();
     if (now - this.kickCd < 1100) return;
     this.kickCd = now;
-    this.punchN++;
-    this.me.punchT = 0.3;
+    this.kickN++;
+    this.me.kickT = 0.35;
     Sfx.swing();
     const range = 2.9, dmg = 20;
     const fwd = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
@@ -534,18 +561,10 @@ export class WorldGame {
       }
       this.updateHUD();
     } else {
-      const r = this._ref;
-      if (r.isBot) {
-        r.hp -= dmg;
-        this.knockback(r.mesh.position, this.pos, 2.2);
-        if (r.hp <= 0 && r.alive) {
-          r.alive = false; r.deadT = 1.2;
-          this.cash += 100; this.kills++; Sfx.kill();
-          this.feed(`🦵 ${this.nick} → ${best}`);
-          setTimeout(() => { if (this.disposed) return; r.hp = 100; r.alive = true; r.mesh.visible = true; r.mesh.rotation.x = 0; }, 2000);
-        }
-      } else {
-        this.socket.emit('player:hit', { target: best, damage: dmg, weapon: '강킥🦵' });
+      // 술래잡기: 술래만 강킥 태그
+      if (this.amIt && now - this.tagCd > 1000) {
+        this.tagCd = now;
+        this.socket.emit('player:tag', { target: best });
       }
     }
   }
@@ -621,17 +640,18 @@ export class WorldGame {
     this.refreshCarCol(c);
     this.pos.set(c.x, 1.6, c.z); this.yaw = c.yaw;
     document.getElementById('speed').textContent = `${Math.abs(Math.round(this.carSpeed * 4))} km/h`;
-    // 치어박기
+    // 치어박기 = 태그 (술래만)
     if (Math.abs(this.carSpeed) > 6) {
       const now = performance.now();
       for (const [n, r] of this.remotes) {
         if (!r.alive) continue;
         if (Math.hypot(r.mesh.position.x - c.x, r.mesh.position.z - c.z) < 2.3 && (now - (this.runCd.get(n) || 0)) > 800) {
           this.runCd.set(n, now);
-          if (r.isBot) {
-            r.hp -= 60;
-            if (r.hp <= 0 && r.alive) { r.alive = false; r.deadT = 1.2; this.cash += 100; this.kills++; this.feed(`🚗 ${this.nick} → ${n}`); setTimeout(() => { if (this.disposed) return; r.hp = 100; r.alive = true; r.mesh.visible = true; r.mesh.rotation.x = 0; }, 2000); }
-          } else this.socket.emit('player:hit', { target: n, damage: 55, weapon: '차량🚗' });
+          if (this.amIt && now - this.tagCd > 1000) {
+            this.tagCd = now;
+            this.socket.emit('player:tag', { target: n });
+            Sfx.thud();
+          }
         }
       }
     }
@@ -643,7 +663,8 @@ export class WorldGame {
   // ============ 소켓 ============
   bindSocket() {
     const s = this.socket;
-    ['room:players', 'player:move', 'player:killed', 'player:damaged', 'player:respawned', 'player:left', 'chat:msg', 'car:taken', 'car:free', 'car:state', 'cars:sync'].forEach(e => s.off(e));
+    ['room:players', 'player:move', 'player:killed', 'player:damaged', 'player:respawned', 'player:left', 'chat:msg', 'car:taken', 'car:free', 'car:state', 'cars:sync', 'tag:update'].forEach(e => s.off(e));
+    s.on('tag:update', (d) => this.onTag(d));
     s.on('cars:sync', (d) => {
       if (!d || !d.holders) return;
       for (const [ci, who] of Object.entries(d.holders)) {
@@ -669,6 +690,7 @@ export class WorldGame {
         r.targetPitch = p.pitch || 0; r.wi = p.wi || 0; r.blocking = !!p.blocking;
         r.knife.visible = r.wi === 1;
         if (p.punch !== (r.lastPunch || 0)) { r.lastPunch = p.punch; r.punchT = 0.28; }
+        if (p.kick !== undefined && p.kick !== (r.lastKick || 0)) { r.lastKick = p.kick; r.kickT = 0.35; }
         this.setAlive(r, p.alive, p.hp);
       });
       for (const [k, r] of [...this.remotes]) {
@@ -691,6 +713,7 @@ export class WorldGame {
       r.targetPitch = p.pitch || 0; r.wi = p.wi || 0; r.blocking = !!p.blocking;
       r.knife.visible = r.wi === 1;
       if (p.punch !== (r.lastPunch || 0)) { r.lastPunch = p.punch; r.punchT = 0.28; }
+      if (p.kick !== undefined && p.kick !== (r.lastKick || 0)) { r.lastKick = p.kick; r.kickT = 0.35; }
       if (p.driving !== undefined) r.driving = p.driving;
       this.setAlive(r, p.alive, p.hp);
     });
@@ -734,9 +757,22 @@ export class WorldGame {
     });
     s.on('chat:msg', (d) => this.log(d.sys ? d.text : `${d.nickname}: ${d.text}`, d.sys));
   }
+  onTag(d) {
+    if (!d) return;
+    const wasIt = this.tag.it;
+    this.tag = d;
+    if (wasIt !== d.it) {
+      if (d.it === this.nick) { this.feed('👹 네가 술래다! 잡아라!'); Sfx.kill(); }
+      else if (d.it) this.feed(`👹 새 술래: ${d.it}`);
+    }
+    this.updateHUD();
+  }
+  get amIt() { return this.tag.it === this.nick; }
+
   setAlive(r, alive, hp) {
     r.hp = hp;
-    if (alive) { r.deadT = 0; r.mesh.visible = true; r.mesh.rotation.x = 0; }
+    const driving = r.driving !== null && r.driving !== undefined;
+    if (alive) { r.deadT = 0; r.mesh.visible = !driving; r.mesh.rotation.x = 0; }
     else if (r.alive && !alive) { r.deadT = 1.5; }
     else if (!alive && r.deadT <= 0) r.mesh.visible = false;
     r.alive = alive;
@@ -751,7 +787,10 @@ export class WorldGame {
     let st = '';
     for (let i = 0; i < 5; i++) st += i < this.wanted ? '★' : '☆';
     document.getElementById('wanted').textContent = st;
-    document.getElementById('match-info').textContent = `${this.room.name} · ${this.kills}킬`;
+    const t = this.tag.timeLeft || 0;
+    const myTags = (this.tag.tags || {})[this.nick] || 0;
+    document.getElementById('match-info').textContent =
+      `${this.amIt ? '👹 네가 술래!' : `👹 술래: ${this.tag.it || '-'}`} · R${this.tag.round || 1} ${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')} · 내 태그 ${myTags}회`;
   }
   feed(t) {
     const d = document.createElement('div'); d.textContent = t;
@@ -765,6 +804,9 @@ export class WorldGame {
     while (cl.children.length > 30) cl.firstChild.remove();
   }
   drawMinimap() {
+    const now2 = performance.now();
+    if (now2 - (this.mmT || 0) < 150) return;
+    this.mmT = now2;
     const c = document.getElementById('minimap'); if (!c) return;
     const ctx = c.getContext('2d');
     const to = (x, z) => [80 + (x / 240) * 160, 80 + (z / 240) * 160];
@@ -775,6 +817,11 @@ export class WorldGame {
       ctx.fillStyle = car.driver ? '#ff0000' : '#ffdd00';
       ctx.fillRect(mx - 2, mz - 2, 4, 4);
     });
+    for (const cd of this.cashDrops || []) {
+      if (!cd.active) continue;
+      const [mx, mz] = to(cd.mesh.position.x, cd.mesh.position.z);
+      ctx.fillStyle = '#2eff6a'; ctx.fillRect(mx - 1, mz - 1, 3, 3);
+    }
     for (const [, r] of this.remotes) {
       if (!r.alive) continue;
       const [mx, mz] = to(r.mesh.position.x, r.mesh.position.z);
@@ -796,7 +843,7 @@ export class WorldGame {
     this.isMoving = false;
     if (this.alive && locked && this.driving === null) {
       const spBase = (this.keys.ShiftLeft || this.keys.ShiftRight) ? 8 : 5;
-      const sp = this.blocking ? spBase * 0.55 : spBase;
+      const sp = (this.blocking ? spBase * 0.55 : spBase) * (this.amIt ? 1.12 : 1); // 술래 12% 빠름
       const f = new THREE.Vector3(-Math.sin(this.yaw), 0, -Math.cos(this.yaw));
       const r = new THREE.Vector3(-f.z, 0, f.x);
       const mv = new THREE.Vector3();
@@ -839,21 +886,29 @@ export class WorldGame {
       this.camera.lookAt(this.pos.x, this.pos.y - 0.2, this.pos.z);
     }
 
-    // 자신 애니
+    // 자신 애니 (+술래면 빨갛게)
     if (this.driving === null) {
       this.me.mesh.position.set(this.pos.x, 0, this.pos.z);
       this.me.headPitch = this.pitch;
       this.me.knife.visible = this.wi === 1;
+      this.me.mats.forEach(m => m.emissive.setHex(this.amIt ? 0x881111 : 0x000000));
       this.animateSoldier(this.me, dt, time, this.me.punchT > 0);
     }
 
     // 원격 보간+애니
-    for (const [, r] of this.remotes) {
+    for (const [n, r] of this.remotes) {
       if (r.isBot) continue;
       if (r.alive) {
         r.mesh.position.x += (r.targetPos.x - r.mesh.position.x) * 0.25;
         r.mesh.position.z += (r.targetPos.z - r.mesh.position.z) * 0.25;
         r.mesh.position.y += (r.targetPos.y - r.mesh.position.y) * Math.min(1, dt * 14);
+      }
+      // 술래 표시 (빨간 발광 + 👹택)
+      const isIt = n === this.tag.it;
+      r.mats.forEach(m => m.emissive.setHex(isIt ? 0x881111 : 0x000000));
+      if (r.wasIt !== isIt) {
+        r.wasIt = isIt;
+        if (r.plate) this.drawPlate(r.plate, (isIt ? '👹' : '') + n, isIt ? '#ffaa00' : '#ff7777');
       }
       if (r.driving !== null && r.driving !== undefined) {
         const c = this.cars[r.driving];
@@ -877,7 +932,8 @@ export class WorldGame {
       if (pd.fleeT > 0) {
         pd.fleeT -= dt;
         const away = pd.mesh.position.clone().sub(this.pos); away.y = 0;
-        if (away.length() < 25) {
+        const fleeR = this.wanted >= 3 ? 45 : 25; // 수배 높으면 시민이 멀리서 도망
+        if (away.length() < fleeR) {
           away.normalize();
           const nx = pd.mesh.position.x + away.x * dt * 6, nz = pd.mesh.position.z + away.z * dt * 6;
           if (!this.collide(nx, nz, 0.4)) { pd.mesh.position.x = nx; pd.mesh.position.z = nz; }
@@ -912,12 +968,13 @@ export class WorldGame {
       this.wantT -= dt;
       if (this.wantT <= 0) { this.wanted--; this.wantT = 20; this.updateHUD(); }
     }
+    this.updateCash(dt);
 
     // 전송
     this.netTimer += dt;
     if (this.netTimer > 0.05) {
       this.netTimer = 0;
-      const pkt = { pos: { x: this.pos.x, y: this.pos.y, z: this.pos.z }, yaw: this.me?.yaw ?? this.yaw, pitch: this.pitch, wi: this.wi, punch: this.punchN, driving: this.driving, blocking: this.blocking && this.driving === null, fy: this.pos.y - 1.6 };
+      const pkt = { pos: { x: this.pos.x, y: this.pos.y, z: this.pos.z }, yaw: this.me?.yaw ?? this.yaw, pitch: this.pitch, wi: this.wi, punch: this.punchN, kick: this.kickN, driving: this.driving, blocking: this.blocking && this.driving === null, fy: this.pos.y - 1.6 };
       if (this.driving !== null) {
         const c = this.cars[this.driving];
         pkt.car = { idx: this.driving, x: c.x, z: c.z, yaw: c.yaw };

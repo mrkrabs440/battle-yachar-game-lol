@@ -23,7 +23,7 @@ async function loadRooms() {
   const j = await (await fetch('/api/rooms')).json();
   const list = j.rooms || [];
   $('room-list').innerHTML = list.length ? list.map(r =>
-    `<div class="room"><div class="info"><b>${esc(r.name)}</b><br><span style="color:#9fb2c5">${r.playerCount}/${r.maxPlayers}명</span></div><button data-j="${r.id}">입장</button></div>`
+    `<div class="room"><div class="info"><b>${esc(r.name)}</b>${r.it ? ` <span style="color:#ffaa00">👹${esc(r.it)}</span>` : ''}<br><span style="color:#9fb2c5">${r.playerCount}/${r.maxPlayers}명</span></div><button data-j="${r.id}">입장</button></div>`
   ).join('') : '<p style="color:#7d8ea0">방이 없습니다. 만들어보세요!</p>';
   document.querySelectorAll('[data-j]').forEach(b => b.onclick = () => joinRoom(b.dataset.j));
 }
@@ -47,4 +47,5 @@ socket.on('room:joined', (d) => {
   if (game) game.dispose();
   game = new WorldGame({ canvas: $('game-canvas'), socket, room: d.room, nick: myNick });
   game.start();
+  if (d.tag) game.onTag(d.tag);
 });
