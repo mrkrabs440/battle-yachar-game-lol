@@ -1,0 +1,51 @@
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Malgun Gothic',sans-serif}
+body{background:#0b0f14;color:#e8edf2;overflow:hidden}
+.screen{width:100vw;height:100vh}
+.hidden{display:none!important}
+#nick-screen,#lobby-screen{display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 30% 20%,#2b1c3a,#0b0f14 70%)}
+#lobby-screen{flex-direction:column;padding:18px;overflow-y:auto}
+.box{background:#141c26;border:1px solid #b44dff;border-radius:14px;padding:32px;width:400px;text-align:center}
+.box h1 span{color:#c77dff}
+.sub{color:#9fb2c5;font-size:13px;margin:6px 0 16px}
+.hint{font-size:12px;color:#7d8ea0;margin-top:12px}
+input{width:100%;padding:11px;margin:6px 0;border-radius:8px;border:1px solid #33465c;background:#0f1620;color:#fff}
+button.primary{background:#b44dff;border:none;padding:11px;width:100%;border-radius:8px;font-weight:bold;cursor:pointer;margin-top:6px;color:#fff}
+button.primary:hover{background:#c77dff}
+header{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:900px}
+.userbox{display:flex;gap:10px;align-items:center}
+.lobby-main{width:100%;max-width:900px;margin-top:12px}
+.panel{background:#141c26;border:1px solid #2a3a4d;border-radius:12px;padding:14px;margin-bottom:12px}
+.panel-head{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.panel-head h3{flex:1}
+#btn-refresh{background:#22303f;color:#fff;border:1px solid #3a4f66;padding:8px 12px;border-radius:8px;cursor:pointer}
+#btn-create{width:auto;padding:8px 14px}
+.room{border:1px solid #2a3a4d;border-radius:10px;padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:10px;background:#0f1620}
+.room .info{flex:1}
+.room button{background:#1f7a3a;border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:bold}
+#game-screen{position:relative}
+#game-canvas{width:100vw;height:100vh;display:block}
+#hud{position:absolute;inset:0;pointer-events:none}
+#crosshair{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%);font-size:22px;color:#fff;text-shadow:0 0 4px #000}
+#hitmarker{position:absolute;left:50%;top:52%;transform:translate(-50%,-50%) scale(1.5);font-size:22px;color:#ff4040;opacity:0}
+#topbar{position:absolute;top:10px;left:50%;transform:translateX(-50%);text-align:center;background:rgba(0,0,0,.55);padding:8px 18px;border-radius:10px}
+#wanted{color:#ffd700;font-size:18px;letter-spacing:2px}
+#match-info{font-weight:bold;color:#c77dff;font-size:13px}
+#killfeed{position:absolute;top:10px;right:180px;display:flex;flex-direction:column;gap:4px;font-size:13px}
+#killfeed div{background:rgba(0,0,0,.6);padding:4px 10px;border-radius:6px}
+#bottom-left{position:absolute;left:18px;bottom:18px}
+#hp-bar{width:240px;height:26px;background:#222;border-radius:8px;position:relative;overflow:hidden;border:1px solid #555}
+#hp-fill{height:100%;width:100%;background:linear-gradient(90deg,#e74c3c,#c0392b)}
+#hp-text{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:bold}
+#cash{margin-top:6px;font-size:16px;color:#7CFC00;font-weight:bold;background:rgba(0,0,0,.55);padding:4px 10px;border-radius:6px;display:inline-block}
+#bottom-right{position:absolute;right:18px;bottom:18px;text-align:right;background:rgba(0,0,0,.55);padding:10px 16px;border-radius:10px}
+#weapon-name{color:#c77dff;font-weight:bold;font-size:18px}
+#speed{color:#fff;font-size:14px}
+#minimap{position:absolute;top:10px;right:10px;background:rgba(0,0,0,.6);border:1px solid #444;border-radius:8px}
+#chat{position:absolute;left:18px;bottom:90px;width:320px;pointer-events:auto}
+#chat-log{max-height:150px;overflow-y:auto;font-size:13px;display:flex;flex-direction:column;gap:2px;margin-bottom:4px}
+#chat-log div{background:rgba(0,0,0,.55);padding:3px 8px;border-radius:5px}
+#interact-tip{position:absolute;left:50%;top:60%;transform:translateX(-50%);background:#c77dff;color:#111;padding:8px 16px;border-radius:8px;font-weight:bold}
+#respawn-overlay{position:absolute;inset:0;background:rgba(150,0,0,.35);display:flex;flex-direction:column;align-items:center;justify-content:center}
+#death-by{color:#ffb300;font-weight:bold;font-size:18px;margin:6px 0}
+#click-to-play{position:absolute;inset:0;background:rgba(0,0,0,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;cursor:pointer}
+#click-to-play button{pointer-events:auto;padding:10px 20px;border-radius:8px;border:none;background:#c0392b;color:#fff;cursor:pointer}

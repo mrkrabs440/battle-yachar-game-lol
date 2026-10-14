@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OPENWORLD 난투 | GTA풍 주먹/칼 온라인</title>
+<link rel="stylesheet" href="css/style.css">
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<div id="nick-screen" class="screen">
+  <div class="box">
+    <h1>🌆 OPENWORLD <span>난투</span></h1>
+    <p class="sub">회원가입 없음 · 닉네임만 · 최대 15인 · 주먹/칼 + 차량</p>
+    <input id="nick-input" placeholder="닉네임 (2~12자)" maxlength="12">
+    <button id="btn-go" class="primary">입장</button>
+    <p class="hint">WASD 이동 · Space 점프 · 마우스 시점 · 클릭 펀치 · F막기(홀드) · G 강킥 · 1주먹/2칼 · E 차량탑승 · Shift 달리기 · Enter 채팅</p>
+  </div>
+</div>
+<div id="lobby-screen" class="screen hidden">
+  <header><h2>🌆 난투 로비</h2><div class="userbox"><span id="my-nick"></span></div></header>
+  <div class="lobby-main">
+    <div class="panel">
+      <div class="panel-head"><h3>방 목록 (최대 15인)</h3><button id="btn-refresh">새로고침</button><button id="btn-create" class="primary">+ 방 만들기</button></div>
+      <div id="room-list"></div>
+    </div>
+    <div class="panel hidden" id="create-panel">
+      <h3>방 만들기</h3>
+      <input id="room-name" placeholder="방 이름">
+      <button id="btn-do-create" class="primary">생성 & 입장</button>
+    </div>
+  </div>
+</div>
+<div id="game-screen" class="screen hidden">
+  <canvas id="game-canvas"></canvas>
+  <div id="hud">
+    <div id="crosshair">·</div>
+    <div id="hitmarker"></div>
+    <div id="topbar"><div id="wanted">★☆☆☆☆</div><div id="match-info">난투 중</div></div>
+    <div id="killfeed"></div>
+    <div id="bottom-left">
+      <div id="hp-bar"><div id="hp-fill"></div><span id="hp-text">100</span></div>
+      <div id="cash">💵 $0</div>
+    </div>
+    <div id="bottom-right"><div id="weapon-name">👊 주먹</div><div id="speed" class="hidden">0 km/h</div></div>
+    <canvas id="minimap" width="160" height="160"></canvas>
+    <div id="chat"><div id="chat-log"></div><input id="chat-input" placeholder="Enter 채팅..." class="hidden"></div>
+    <div id="interact-tip" class="hidden">E: 차량 탑승</div>
+    <div id="respawn-overlay" class="hidden"><h2>쓰러짐!</h2><div id="death-by"></div><p>2초 후 부활...</p></div>
+  </div>
+  <div id="click-to-play"><h2>클릭하여 난투 참가</h2><p>WASD + 마우스 3인칭</p><button id="btn-leave">로비로</button></div>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

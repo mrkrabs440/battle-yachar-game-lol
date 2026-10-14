@@ -1,0 +1,14 @@
+{
+  "name": "openworld-fight",
+  "version": "1.0.0",
+  "description": "GTA풍 오픈월드 맞짱 (주먹/칼, 닉네임만, 최대 15인, DB없음)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
+  }
+}
