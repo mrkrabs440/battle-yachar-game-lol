@@ -1,7 +1,7 @@
 {
-  "name": "openworld-fight",
+  "name": "brainrot-steal",
   "version": "1.0.0",
-  "description": "GTA풍 오픈월드 맞짱 (주먹/칼, 닉네임만, 최대 15인, DB없음)",
+  "description": "로블록스식 브레인롯 훔치기 온라인 (회원가입/로그인/데이터저장)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,6 +9,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
+    "bcryptjs": "^2.4.3",
     "uuid": "^9.0.1"
   }
 }

@@ -1,51 +1,40 @@
-import { WorldGame } from './world.js';
+import { BrainrotGame } from './game.js';
 
 const socket = io();
-let myNick = localStorage.getItem('ow_nick') || '';
+let token = localStorage.getItem('br_token') || null;
 let game = null;
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const msg = (t) => { $('auth-msg').textContent = t; };
 
-if (myNick) $('nick-input').value = myNick;
-$('btn-go').onclick = () => {
-  const v = $('nick-input').value.trim();
-  if (v.length < 2) return alert('닉네임 2~12자!');
-  myNick = v.slice(0, 12);
-  localStorage.setItem('ow_nick', myNick);
-  $('nick-screen').classList.add('hidden');
-  $('lobby-screen').classList.remove('hidden');
-  $('my-nick').textContent = '👤 ' + myNick;
-  loadRooms();
+$('tab-login').onclick = () => { $('tab-login').classList.add('active'); $('tab-register').classList.remove('active'); $('login-form').classList.remove('hidden'); $('register-form').classList.add('hidden'); };
+$('tab-register').onclick = () => { $('tab-register').classList.add('active'); $('tab-login').classList.remove('active'); $('register-form').classList.remove('hidden'); $('login-form').classList.add('hidden'); };
+$('btn-register').onclick = async () => {
+  const r = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: $('reg-id').value.trim(), nickname: $('reg-nick').value.trim(), password: $('reg-pw').value }) });
+  const j = await r.json();
+  msg(j.error || j.message);
+  if (j.ok) { $('tab-login').click(); $('login-id').value = $('reg-id').value.trim(); }
 };
-$('nick-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('btn-go').click(); });
-
-async function loadRooms() {
-  const j = await (await fetch('/api/rooms')).json();
-  const list = j.rooms || [];
-  $('room-list').innerHTML = list.length ? list.map(r =>
-    `<div class="room"><div class="info"><b>${esc(r.name)}</b>${r.it ? ` <span style="color:#ffaa00">👹${esc(r.it)}</span>` : ''}<br><span style="color:#9fb2c5">${r.playerCount}/${r.maxPlayers}명</span></div><button data-j="${r.id}">입장</button></div>`
-  ).join('') : '<p style="color:#7d8ea0">방이 없습니다. 만들어보세요!</p>';
-  document.querySelectorAll('[data-j]').forEach(b => b.onclick = () => joinRoom(b.dataset.j));
+async function doLogin() {
+  const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: $('login-id').value.trim(), password: $('login-pw').value }) });
+  const j = await r.json();
+  if (!j.ok) return msg(j.error);
+  token = j.token;
+  localStorage.setItem('br_token', token);
+  enterGame();
 }
-$('btn-refresh').onclick = loadRooms;
-$('btn-create').onclick = () => $('create-panel').classList.toggle('hidden');
-$('btn-do-create').onclick = async () => {
-  const name = $('room-name').value.trim() || `${myNick}의 난투장`;
-  const j = await (await fetch('/api/rooms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) })).json();
-  joinRoom(j.room.id);
-};
-function joinRoom(id) { socket.emit('room:join', { roomId: id, nickname: myNick }); }
+$('btn-login').onclick = doLogin;
+$('login-pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
-socket.on('lobby:update', (d) => { if (!$('lobby-screen').classList.contains('hidden')) loadRooms(); });
-socket.on('error:msg', (t) => alert(t));
-socket.on('room:joined', (d) => {
-  $('lobby-screen').classList.add('hidden');
-  $('nick-screen').classList.add('hidden');
+function enterGame() {
+  $('auth-screen').classList.add('hidden');
   $('game-screen').classList.remove('hidden');
-  myNick = d.you;
-  localStorage.setItem('ow_nick', myNick);
+  socket.emit('auth', { token });
+}
+socket.on('auth:fail', () => { localStorage.removeItem('br_token'); location.reload(); });
+socket.on('error:msg', (t) => alert(t));
+socket.on('auth:ok', (d) => {
   if (game) game.dispose();
-  game = new WorldGame({ canvas: $('game-canvas'), socket, room: d.room, nick: myNick });
+  game = new BrainrotGame({ canvas: $('game-canvas'), socket, user: d.user, plot: d.plot, snap: d.snap });
   game.start();
-  if (d.tag) game.onTag(d.tag);
 });
+if (token) enterGame();
