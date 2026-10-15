@@ -1,7 +1,6 @@
-import { BrainrotGame } from './game.js';
+import { HorrorGame } from './game.js';
 
-const socket = io();
-let token = localStorage.getItem('br_token') || null;
+let token = localStorage.getItem('hr_token') || null;
 let game = null;
 const $ = (id) => document.getElementById(id);
 const msg = (t) => { $('auth-msg').textContent = t; };
@@ -19,22 +18,26 @@ async function doLogin() {
   const j = await r.json();
   if (!j.ok) return msg(j.error);
   token = j.token;
-  localStorage.setItem('br_token', token);
+  localStorage.setItem('hr_token', token);
   enterGame();
 }
 $('btn-login').onclick = doLogin;
 $('login-pw').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
 
+async function loadRank() {
+  try {
+    const j = await (await fetch('/api/rank')).json();
+    const fmt = (ms) => ms ? `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}` : '-';
+    $('rank-list').innerHTML = '<b>🏆 탈출 랭킹</b><br>' + (j.rank.map((r, i) => `${i + 1}. ${r.nickname} — ${r.escapes}회 탈출 (최고 ${fmt(r.bestMs)})`).join('<br>') || '아직 기록 없음');
+  } catch {}
+}
+loadRank();
+
 function enterGame() {
   $('auth-screen').classList.add('hidden');
   $('game-screen').classList.remove('hidden');
-  socket.emit('auth', { token });
-}
-socket.on('auth:fail', () => { localStorage.removeItem('br_token'); location.reload(); });
-socket.on('error:msg', (t) => alert(t));
-socket.on('auth:ok', (d) => {
   if (game) game.dispose();
-  game = new BrainrotGame({ canvas: $('game-canvas'), socket, user: d.user, plot: d.plot, snap: d.snap });
+  game = new HorrorGame({ canvas: $('game-canvas'), token });
   game.start();
-});
+}
 if (token) enterGame();

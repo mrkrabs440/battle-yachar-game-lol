@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>브레인롯 훔치기 온라인</title>
+<title>폐교탈출 | 공포게임</title>
 <link rel="stylesheet" href="css/style.css">
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
@@ -11,9 +11,9 @@
 </head>
 <body>
 <div id="auth-screen" class="screen">
-  <div class="box">
-    <h1>🧠 브레인롯 <span>훔치기</span></h1>
-    <p class="sub">벨트에서 줍고 · 기지에 모으고 · 남의 것 훔치기!</p>
+  <div class="box blood">
+    <h1>🏚️ 폐교<span>탈출</span></h1>
+    <p class="sub">8쪽을 모아 정문으로 탈출해라.<br>그것이 널 보고 있다.</p>
     <div class="tabs"><button id="tab-login" class="tab active">로그인</button><button id="tab-register" class="tab">회원가입</button></div>
     <div id="login-form">
       <input id="login-id" placeholder="아이디"><input id="login-pw" type="password" placeholder="비밀번호">
@@ -25,24 +25,23 @@
       <button id="btn-register" class="primary">회원가입</button>
     </div>
     <p id="auth-msg" class="msg"></p>
+    <div id="rank-list"></div>
   </div>
 </div>
 <div id="game-screen" class="screen hidden">
   <canvas id="game-canvas"></canvas>
   <div id="hud">
     <div id="crosshair">·</div>
-    <div id="topbar"><div id="cash">💵 $0</div><div id="income">+$0/초</div></div>
-    <div id="killfeed"></div>
-    <div id="bottom-left"><div id="carry">🤲 빈 손</div><div id="baselock">🔓 기지 열림</div></div>
-    <div id="bottom-right"><div id="mybase">🏠 내 기지</div><div id="slots"></div></div>
-    <canvas id="minimap" width="150" height="150"></canvas>
-    <div id="chat"><div id="chat-log"></div><input id="chat-input" placeholder="Enter 채팅..." class="hidden"></div>
+    <div id="topbar"><div id="pages">📄 0 / 8</div><div id="battery">🔦 100%</div><div id="stamina"><div id="st-fill"></div></div></div>
+    <div id="msg"></div>
     <div id="interact-tip" class="hidden">E</div>
-    <div id="locktip" class="hidden"></div>
+    <div id="static"></div>
+    <div id="vignette"></div>
   </div>
-  <div id="click-to-play"><h2>클릭하여 입장</h2><p>WASD 이동 · 클릭 찰싹 · E 줍기/보관/잠금 · Q 내려놓기</p><button id="btn-leave">나가기</button></div>
+  <div id="jumpscare" class="hidden"><canvas id="scare-canvas" width="600" height="600"></canvas></div>
+  <div id="end-screen" class="hidden"><h1 id="end-title"></h1><p id="end-sub"></p><button id="btn-again" class="primary">다시 도전</button> <button id="btn-tolobby">로비(기록)</button></div>
+  <div id="click-to-play"><h2>🎧 이어폰 권장 — 클릭하여 입장</h2><p>WASD 이동 · Shift 달리기 · E 줍기 · F 손전등</p><button id="btn-leave">나가기</button></div>
 </div>
-<script src="/socket.io/socket.io.js"></script>
 <script type="module" src="js/app.js"></script>
 </body>
 </html>

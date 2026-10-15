@@ -1,14 +1,13 @@
 {
-  "name": "brainrot-steal",
+  "name": "horror-school",
   "version": "1.0.0",
-  "description": "로블록스식 브레인롯 훔치기 온라인 (회원가입/로그인/데이터저장)",
+  "description": "1인칭 공포게임 폐교탈출 (회원가입/로그인/기록저장)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "socket.io": "^4.7.5",
     "bcryptjs": "^2.4.3",
     "uuid": "^9.0.1"
   }
